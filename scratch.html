@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset="UTF-8" />
+
+<!--<link rel="icon" type="image/svg+xml" href="/favicon.svg" />-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark light" />
+<title>JS13K 2026</title>
+
+<style>
+  body,
+  #p {
+    margin: 0;
+  }
+
+  #m {
+    display: grid;
+    place-content: center;
+  }
+
+  #c {
+    /* TODO: look up difference between %, vw, svw, etc. */
+    width: 100%;
+    height: 100%;
+  }
+
+  #a {
+    position: absolute;
+  }
+
+  #p {
+    padding: 1rem;
+  }
+</style>
+
+<main id="m">
+  <canvas id="c"></canvas>
+  <aside id="a">
+    <pre id="p"></pre>
+  </aside>
+</main>
+
+<script>
+  const w = window,
+    { requestAnimationFrame: raf, cancelAnimationFrame: caf, performance: perf } = w,
+    { round, sin } = Math,
+    ctx = c.getContext("2d"),
+    on = (target, eventType, listener, options) =>
+      target.addEventListener(eventType, listener, options),
+    onResize = () => {
+      // TODO: does changing screens count as a resize?
+      ({ innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr = 1 } = w);
+
+      c.width = iw * dpr;
+      c.height = ih * dpr;
+    },
+    trimLines = (lines) =>
+      lines
+        .split("\n")
+        .reduce(
+          (acc, l) =>
+            // any non-whitespace character?
+            /\S/.test(l)
+              ? // trim & keep
+                (acc.push(l.trim()), acc)
+              : // discard
+                acc,
+          [],
+        )
+        .join("\n"),
+    goldTime = 1_000 / 60,
+    initTime = perf.now(),
+    tick = (now) => {
+      frameId = raf(tick);
+
+      prevTime = currTime;
+      currTime = now;
+
+      diffTime = currTime - prevTime;
+      overTime += diffTime;
+
+      while (overTime > goldTime) {
+        overTime -= goldTime;
+        draw(1);
+      }
+
+      // FIXME: this doesn't seem right
+      draw((overTime - goldTime) / goldTime);
+    },
+    draw = (pct) => {
+      const hue = 180 * sin(currTime / 10_000);
+
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+      ctx.fillRect(0, 0, c.width, c.height);
+
+      p.innerText = trimLines(`
+        time: ${(round(currTime / 100) / 10).toFixed(1).padStart(5, " ")}s
+        hue: ${round((hue + 360) % 360)}
+      `);
+      // TODO: maybe oklch will give us something?
+      // p.style.color = `hsl(${hue + 90}, 50%, 20%)`;
+    },
+    onClick = () => (frameId === -1 ? raf(tick) : (caf(frameId), (frameId = -1)));
+
+  let { innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr = 1 } = w,
+    frameId = raf(tick),
+    currTime = (prevTime = initTime),
+    diffTime = currTime - prevTime,
+    overTime = 0;
+
+  on(w, "resize", onResize);
+  w.dispatchEvent(new Event("resize"));
+
+  on(m, "click", onClick);
+</script>
