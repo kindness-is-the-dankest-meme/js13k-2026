@@ -1,60 +1,117 @@
 import "./style.css";
-import typescriptLogo from "./assets/typescript.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
-import { setupCounter } from "./counter.ts";
 
-document.querySelector<HTMLDivElement>("#app")!.innerHTML = /* html */ `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+declare global {
+  var m: HTMLElementTagNameMap["main"];
+  var c: HTMLElementTagNameMap["canvas"];
+  var a: HTMLElementTagNameMap["aside"];
+  var p: HTMLElementTagNameMap["pre"];
+}
 
-<div class="ticks"></div>
+const w = window,
+  {
+    requestAnimationFrame: raf,
+    cancelAnimationFrame: caf,
+    performance: perf,
+  } = w,
+  { PI: π /*, round, sin */ } = Math,
+  ππ = π * 2,
+  ctx = c.getContext("2d"),
+  on = (
+    target: EventTarget,
+    eventType: string,
+    listener: EventListener,
+    options?: AddEventListenerOptions | boolean,
+  ) => target.addEventListener(eventType, listener, options),
+  onResize = () => {
+    // TODO: does changing screens count as a resize?
+    ({ innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr = 1 } = w);
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+    c.width = cw = iw * dpr;
+    c.height = ch = ih * dpr;
+    hw = cw / 2;
+    hh = ch / 2;
+  },
+  /* trimLines = (lines: string) =>
+    lines
+      .split("\n")
+      .reduce(
+        (acc, l) =>
+          // any non-whitespace character?
+          /\S/.test(l)
+            ? // trim & keep
+              (acc.push(l.trim()), acc)
+            : // discard
+              acc,
+        [],
+      )
+      .join("\n"), */
+  circ = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) =>
+    ctx.ellipse(x, y, r, r, 0, 0, ππ),
+  state = {
+    ps: {},
+  },
+  // onClick = () => (frameId === -1 ? raf(tick) : (caf(frameId), (frameId = -1))),
+  onPointerDown = (event: PointerEvent) =>
+    (state.ps[event.pointerId] = {
+      x: event.x,
+      y: event.y,
+    }),
+  onPointerUp = (event: PointerEvent) => delete state.ps[event.pointerId],
+  goldTime = 1_000 / 60,
+  initTime = perf.now(),
+  tick = (now: DOMHighResTimeStamp) => {
+    frameId = raf(tick);
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`;
+    prevTime = currTime;
+    currTime = now;
 
-setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
+    diffTime = currTime - prevTime;
+    overTime += diffTime;
+
+    while (overTime > goldTime) {
+      overTime -= goldTime;
+      draw(1);
+    }
+
+    // FIXME: this doesn't seem right
+    draw((overTime - goldTime) / goldTime);
+  },
+  draw = (_pct?: number) => {
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = `hsl(210, 60%, 50%)`;
+    ctx.fillRect(0, 0, cw, ch);
+
+    ctx.fillStyle = ctx.strokeStyle = "#fe57a1";
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+    circ(ctx, hw, ch * 0.8, cw * 0.08);
+    ctx.fill();
+
+    ctx.beginPath();
+    circ(ctx, hw, ch * 0.8, cw * 0.12);
+    ctx.stroke();
+
+    p.innerText = JSON.stringify(state, null, 2);
+
+    // TODO: maybe oklch will give us something?
+    // p.style.color = `hsl(${hue + 90}, 50%, 20%)`;
+  };
+
+let { innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr } = w,
+  cw = iw * dpr,
+  ch = ih * dpr,
+  hw = cw / 2,
+  hh = ch / 2,
+  frameId = raf(tick),
+  prevTime = initTime,
+  currTime = initTime,
+  diffTime = 0,
+  overTime = 0;
+
+on(w, "resize", onResize);
+w.dispatchEvent(new Event("resize"));
+
+// on(m, "click", onClick);
+on(c, "pointerdown", onPointerDown);
+on(c, "pointerup", onPointerUp);
