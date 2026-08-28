@@ -33,11 +33,18 @@ declare global {
 }
 
 type State = {
-  ps: {
+  pts: {
     [key: number]: {
       x: number;
       y: number;
+      d: boolean;
     };
+  };
+  btn: {
+    p: number;
+    x: number;
+    y: number;
+    d: boolean;
   };
 };
 
@@ -45,7 +52,8 @@ const w = window,
   { performance: perf } = w,
   raf = w.requestAnimationFrame,
   // caf = w.cancelAnimationFrame,
-  { PI: π /*, round */, sin } = Math,
+  { hypot, PI: π, /* round, */ sin } = Math,
+  { entries } = Object,
   ππ = π * 2,
   ctx = c.getContext("2d")!,
   on = <T extends keyof DocumentEventMap>(
@@ -61,7 +69,7 @@ const w = window,
     c.width = cw = iw * dpr;
     c.height = ch = ih * dpr;
     hw = cw / 2;
-    // hh = ch / 2;
+    hh = ch / 2;
   },
   /* trimLines = (lines: string) =>
     lines
@@ -80,15 +88,40 @@ const w = window,
   circ = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) =>
     ctx.ellipse(x, y, r, r, 0, 0, ππ),
   state: State = {
-    ps: {},
+    pts: {},
+    btn: {
+      p: 0,
+      x: 0,
+      y: 0,
+      d: false,
+    },
   },
   // onClick = () => (frameId === -1 ? raf(tick) : (caf(frameId), (frameId = -1))),
-  onPointerDown = (event: PointerEvent) =>
-    (state.ps[event.pointerId] = {
-      x: event.x,
-      y: event.y,
-    }),
-  onPointerUp = (event: PointerEvent) => delete state.ps[event.pointerId],
+  onPointerDownMove = (e: PointerEvent) => {
+    const x = e.x * dpr,
+      y = e.y * dpr,
+      d = state.pts[e.pointerId] === undefined,
+      bx = hw,
+      by = hh * 1.6,
+      bri = cw * 0.08,
+      bro = bri * 1.6,
+      h = hypot(x - bx, y - by);
+
+    state.pts[e.pointerId] = { x, y, d };
+
+    state.btn.p = e.pointerId;
+    if (d && h < bro) {
+      state.btn.x = state.pts[e.pointerId].x;
+      state.btn.y = state.pts[e.pointerId].y;
+    }
+  },
+  onPointerUp = (e: PointerEvent) => {
+    delete state.pts[e.pointerId];
+    state.btn.p = 0;
+    state.btn.x = 0;
+    state.btn.y = 0;
+    state.btn.d = false;
+  },
   goldTime = 1_000 / 60,
   initTime = perf.now(),
   tick = (now: DOMHighResTimeStamp) => {
@@ -109,7 +142,23 @@ const w = window,
     draw((overTime - goldTime) / goldTime);
   },
   draw = (_pct?: number) => {
-    const hue = (sin(currTime / 5_000) + 1) * 180;
+    const hue = (sin(currTime / 5_000) + 1) * 180,
+      bx = hw,
+      by = hh * 1.6,
+      bri = cw * 0.08,
+      bro = bri * 1.6;
+
+    entries(state.pts).forEach(([id, { x, y, d }]) => {
+      const h = hypot(x - bx, y - by);
+      if (!(d && h < bro)) return;
+      state.btn.p = Number(id);
+      state.btn.x = x;
+      state.btn.y = y;
+      state.btn.d = h < bro;
+    });
+
+    const tx = state.btn.d ? state.pts[state.btn.p].x - state.btn.x : 0,
+      ty = state.btn.d ? state.pts[state.btn.p].y - state.btn.y : 0;
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = `oklch(60% 40% ${hue}deg)`;
@@ -120,22 +169,22 @@ const w = window,
     ctx.lineWidth = 5;
 
     ctx.beginPath();
-    circ(ctx, hw, ch * 0.8, cw * 0.08);
+    circ(ctx, bx + tx, by + ty, bri);
     ctx.fill();
 
     ctx.beginPath();
-    circ(ctx, hw, ch * 0.8, cw * 0.12);
+    circ(ctx, bx, by, bro);
     ctx.stroke();
 
     p.innerText = JSON.stringify(state, null, 2);
-    p.style.color = `oklch(40% 40% ${(hue + 240) % 360}deg) / 0.3`;
+    p.style.color = `oklch(0% 0% ${(hue + 240) % 360}deg)`;
   };
 
 let { innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr } = w,
   cw = iw * dpr,
   ch = ih * dpr,
   hw = cw / 2,
-  // hh = ch / 2,
+  hh = ch / 2,
   // frameId = raf(tick),
   prevTime = initTime,
   currTime = initTime,
@@ -148,7 +197,8 @@ on(w, "resize", onResize);
 w.dispatchEvent(new Event("resize"));
 
 // on(m, "click", onClick);
-on(c, "pointerdown", onPointerDown);
+on(c, "pointerdown", onPointerDownMove);
+on(c, "pointermove", onPointerDownMove);
 on(c, "pointerup", onPointerUp);
 
 /**
