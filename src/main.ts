@@ -52,8 +52,9 @@ const w = window,
   { performance: perf } = w,
   raf = w.requestAnimationFrame,
   // caf = w.cancelAnimationFrame,
-  { atan2, cos, hypot, max, min, PI: π, /* round, */ sin } = Math,
+  { atan2, cos, hypot, max, min, PI: π, /* round, */ sign, sin } = Math,
   clamp = (low: number, high: number, val: number) => min(max(low, val), high),
+  pos = (n: number) => sign(n) === 1,
   ππ = π * 2,
   { entries } = Object,
   ctx = c.getContext("2d")!,
@@ -163,11 +164,11 @@ const w = window,
       ta = atan2(ty, tx),
       tax = cos(ta) * (bro - 5),
       tay = sin(ta) * (bro - 5),
-      rtx = clamp(-tax, tax, tx),
-      rty = clamp(-tay, tay, ty);
+      rtx = clamp(pos(tax) ? -tax : tax, pos(tax) ? tax : -tax, tx),
+      rty = clamp(pos(tay) ? -tay : tay, pos(tay) ? tay : -tay, ty);
 
     if (state.btn.d) {
-      console.log(ta, tax, tay);
+      console.log(sign(tax), sign(tay));
     }
 
     ctx.clearRect(0, 0, cw, ch);
@@ -184,6 +185,12 @@ const w = window,
 
     ctx.beginPath();
     circ(ctx, bx, by, bro);
+    ctx.stroke();
+
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + tax, by + tay);
     ctx.stroke();
 
     p.innerText = JSON.stringify(state, null, 2);
