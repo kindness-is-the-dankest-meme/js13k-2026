@@ -162,8 +162,10 @@ const w = window,
     const tx = state.btn.d ? state.pts[state.btn.p].x - state.btn.x : 0,
       ty = state.btn.d ? state.pts[state.btn.p].y - state.btn.y : 0,
       ta = atan2(ty, tx),
-      tax = cos(ta) * (bro - 5),
-      tay = sin(ta) * (bro - 5),
+      tdx = cos(ta),
+      tax = tdx * (bro - bri * 0.7),
+      tdy = sin(ta),
+      tay = tdy * (bro - bri * 0.7),
       rtx = clamp(pos(tax) ? -tax : tax, pos(tax) ? tax : -tax, tx),
       rty = clamp(pos(tay) ? -tay : tay, pos(tay) ? tay : -tay, ty);
 
@@ -184,14 +186,14 @@ const w = window,
     ctx.fill();
 
     ctx.beginPath();
-    circ(ctx, bx, by, bro);
+    circ(ctx, bx + rtx * 0.5, by + rty * 0.5, bro);
     ctx.stroke();
 
-    ctx.strokeStyle = "black";
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(bx + tax, by + tay);
-    ctx.stroke();
+    // ctx.strokeStyle = "black";
+    // ctx.beginPath();
+    // ctx.moveTo(bx, by);
+    // ctx.lineTo(bx + tdx * bro, by + tdy * bro);
+    // ctx.stroke();
 
     p.innerText = JSON.stringify(state, null, 2);
     p.style.color = `oklch(0% 0% ${(hue + 240) % 360}deg)`;
