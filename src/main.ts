@@ -167,9 +167,9 @@ const w = window,
       rtx = clamp(pos(tax) ? -tax : tax, pos(tax) ? tax : -tax, tx),
       rty = clamp(pos(tay) ? -tay : tay, pos(tay) ? tay : -tay, ty);
 
-    if (state.btn.d) {
-      console.log(sign(tax), sign(tay));
-    }
+    // if (state.btn.d) {
+    //   console.log(sign(tax), sign(tay));
+    // }
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = `oklch(60% 40% ${hue}deg)`;
