@@ -16,11 +16,14 @@ body,
 #c {
   /* TODO: look up difference between %, vw, svw, etc. */
   width: 100%;
-  height: 100%;
+  height: 100vh;
 }
 
 #a {
   position: absolute;
+  inset: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  pointer-events: none;
 }
 
 #p {

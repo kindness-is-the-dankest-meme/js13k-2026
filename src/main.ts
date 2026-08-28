@@ -1,25 +1,57 @@
 import "./style.css";
 
 declare global {
+  /**
+   * elements with id attributes create global variables of the same name
+   * @see ../index.html
+   */
   var m: HTMLElementTagNameMap["main"];
   var c: HTMLElementTagNameMap["canvas"];
   var a: HTMLElementTagNameMap["aside"];
   var p: HTMLElementTagNameMap["pre"];
+
+  /**
+   * override the global EventTarget signature to only accept function event
+   * listeners of named / known events (simplifies typing)
+   */
+  interface Listener<T extends keyof DocumentEventMap> {
+    (event: DocumentEventMap[T]): void;
+  }
+
+  interface EventTarget {
+    addEventListener<T extends keyof DocumentEventMap>(
+      type: T,
+      callback: Listener<T> | null,
+      options?: AddEventListenerOptions | boolean,
+    ): void;
+    removeEventListener<T extends keyof DocumentEventMap>(
+      type: T,
+      callback: Listener<T> | null,
+      options?: EventListenerOptions | boolean,
+    ): void;
+  }
 }
 
+type State = {
+  ps: {
+    [key: number]: {
+      x: number;
+      y: number;
+    };
+  };
+};
+
 const w = window,
-  {
-    requestAnimationFrame: raf,
-    cancelAnimationFrame: caf,
-    performance: perf,
-  } = w,
+  { performance: perf } = w,
+  raf = w.requestAnimationFrame,
+  // caf = w.cancelAnimationFrame,
   { PI: π /*, round, sin */ } = Math,
   ππ = π * 2,
-  ctx = c.getContext("2d"),
-  on = (
+  ctx = c.getContext("2d")!,
+  on = <T extends keyof DocumentEventMap>(
     target: EventTarget,
-    eventType: string,
-    listener: EventListener,
+    eventType: T,
+    listener: Listener<T> | null,
     options?: AddEventListenerOptions | boolean,
   ) => target.addEventListener(eventType, listener, options),
   onResize = () => {
@@ -29,7 +61,7 @@ const w = window,
     c.width = cw = iw * dpr;
     c.height = ch = ih * dpr;
     hw = cw / 2;
-    hh = ch / 2;
+    // hh = ch / 2;
   },
   /* trimLines = (lines: string) =>
     lines
@@ -47,7 +79,7 @@ const w = window,
       .join("\n"), */
   circ = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) =>
     ctx.ellipse(x, y, r, r, 0, 0, ππ),
-  state = {
+  state: State = {
     ps: {},
   },
   // onClick = () => (frameId === -1 ? raf(tick) : (caf(frameId), (frameId = -1))),
@@ -60,7 +92,7 @@ const w = window,
   goldTime = 1_000 / 60,
   initTime = perf.now(),
   tick = (now: DOMHighResTimeStamp) => {
-    frameId = raf(tick);
+    /* frameId = */ raf(tick);
 
     prevTime = currTime;
     currTime = now;
@@ -102,12 +134,14 @@ let { innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr } = w,
   cw = iw * dpr,
   ch = ih * dpr,
   hw = cw / 2,
-  hh = ch / 2,
-  frameId = raf(tick),
+  // hh = ch / 2,
+  // frameId = raf(tick),
   prevTime = initTime,
   currTime = initTime,
   diffTime = 0,
   overTime = 0;
+
+raf(tick);
 
 on(w, "resize", onResize);
 w.dispatchEvent(new Event("resize"));
