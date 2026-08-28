@@ -52,9 +52,10 @@ const w = window,
   { performance: perf } = w,
   raf = w.requestAnimationFrame,
   // caf = w.cancelAnimationFrame,
-  { hypot, PI: π, /* round, */ sin } = Math,
-  { entries } = Object,
+  { atan2, cos, hypot, max, min, PI: π, /* round, */ sin } = Math,
+  clamp = (low: number, high: number, val: number) => min(max(low, val), high),
   ππ = π * 2,
+  { entries } = Object,
   ctx = c.getContext("2d")!,
   on = <T extends keyof DocumentEventMap>(
     target: EventTarget,
@@ -158,7 +159,16 @@ const w = window,
     });
 
     const tx = state.btn.d ? state.pts[state.btn.p].x - state.btn.x : 0,
-      ty = state.btn.d ? state.pts[state.btn.p].y - state.btn.y : 0;
+      ty = state.btn.d ? state.pts[state.btn.p].y - state.btn.y : 0,
+      ta = atan2(ty, tx),
+      tax = cos(ta) * (bro - 5),
+      tay = sin(ta) * (bro - 5),
+      rtx = clamp(-tax, tax, tx),
+      rty = clamp(-tay, tay, ty);
+
+    if (state.btn.d) {
+      console.log(ta, tax, tay);
+    }
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = `oklch(60% 40% ${hue}deg)`;
@@ -169,7 +179,7 @@ const w = window,
     ctx.lineWidth = 5;
 
     ctx.beginPath();
-    circ(ctx, bx + tx, by + ty, bri);
+    circ(ctx, bx + rtx, by + rty, bri);
     ctx.fill();
 
     ctx.beginPath();
