@@ -45,7 +45,7 @@ const w = window,
   { performance: perf } = w,
   raf = w.requestAnimationFrame,
   // caf = w.cancelAnimationFrame,
-  { PI: π /*, round, sin */ } = Math,
+  { PI: π /*, round */, sin } = Math,
   ππ = π * 2,
   ctx = c.getContext("2d")!,
   on = <T extends keyof DocumentEventMap>(
@@ -109,11 +109,14 @@ const w = window,
     draw((overTime - goldTime) / goldTime);
   },
   draw = (_pct?: number) => {
+    const hue = (sin(currTime / 5_000) + 1) * 180;
+
     ctx.clearRect(0, 0, cw, ch);
-    ctx.fillStyle = `hsl(210, 60%, 50%)`;
+    ctx.fillStyle = `oklch(60% 40% ${hue}deg)`;
     ctx.fillRect(0, 0, cw, ch);
 
-    ctx.fillStyle = ctx.strokeStyle = "#fe57a1";
+    ctx.fillStyle =
+      ctx.strokeStyle = `oklch(40% 60% ${(hue + 120) % 360}deg / 0.3)`;
     ctx.lineWidth = 5;
 
     ctx.beginPath();
@@ -125,9 +128,7 @@ const w = window,
     ctx.stroke();
 
     p.innerText = JSON.stringify(state, null, 2);
-
-    // TODO: maybe oklch will give us something?
-    // p.style.color = `hsl(${hue + 90}, 50%, 20%)`;
+    p.style.color = `oklch(40% 40% ${(hue + 240) % 360}deg) / 0.3`;
   };
 
 let { innerWidth: iw, innerHeight: ih, devicePixelRatio: dpr } = w,
@@ -149,3 +150,10 @@ w.dispatchEvent(new Event("resize"));
 // on(m, "click", onClick);
 on(c, "pointerdown", onPointerDown);
 on(c, "pointerup", onPointerUp);
+
+/**
+ * necessary to prevent iOS magnifier on long press and selection on double tap
+ */
+const onTouchStartEnd = (e: TouchEvent) => e.preventDefault();
+on(m, "touchstart", onTouchStartEnd);
+on(m, "touchend", onTouchStartEnd);
